@@ -26,10 +26,10 @@ type Question struct {
 	CreateTime time.Time
 }
 
-//提问请求
-type QuestionReq struct {
-	Questioner string `json:"questioner"`
-	Question   string `json:"question"`
+//提问参数
+type QuestParam struct {
+	Questioner eos.AccountName `json:"questioner"`
+	Question   string          `json:"question"`
 }
 
 func rspItem2Question(item *GetTableRspItem) (*Question, error) {
@@ -76,6 +76,7 @@ func main() {
 	api.SetSigner(eos.NewKeyBag())
 
 	//看表
+	fmt.Println("提问前>>")
 	watchTable(ctx, api)
 
 	//提问
@@ -83,6 +84,7 @@ func main() {
 	ask(ctx, api, privKey)
 
 	//再看表
+	fmt.Println("提问后>>")
 	watchTable(ctx, api)
 }
 
@@ -90,12 +92,12 @@ func main() {
 func watchTable(ctx context.Context, api *eos.API) {
 	//先看表
 	getTableReq := eos.GetTableRowsRequest{
-		JSON:  true,
-		Code:  "t1",
-		Scope: "t1",
+		JSON:  true,        //是否启用json
+		Code:  "t1",        //合约名字
+		Scope: "t1",        //scope（填合约部署者名字）
 		Table: "questions", //表名
-		Index: "1",
-		Limit: 10,
+		Index: "1",         //默认1
+		Limit: 10,          //限制条数
 	}
 	data, err := api.GetTableRows(ctx, getTableReq)
 	if err != nil {
@@ -124,11 +126,14 @@ func ask(ctx context.Context, api *eos.API, privKey string) {
 		Account: eos.AccountName("t1"),
 		Name:    eos.ActionName("question"),
 		Authorization: []eos.PermissionLevel{
-			{Actor: eos.AccountName("t1"), Permission: eos.PermissionName("active")},
+			{
+				Actor:      eos.AccountName("t1"),
+				Permission: eos.PermissionName("active"),
+			},
 		},
-		ActionData: eos.NewActionData(&QuestionReq{
-			Questioner: "t1",
-			Question:   "QmVCX4g97KzNhjyinrTqHRa1Czm9q6KwMbosuzy8b5fcis",
+		ActionData: eos.NewActionData(QuestParam{
+			Questioner: eos.AccountName("t1"),
+			Question:   "QmaYQaCwxg8pK9Z5QQC8vrb1hdBC5nV8YFGwGNVNQ3fWka",
 		}),
 	}
 	api.Signer.ImportPrivateKey(ctx, privKey)
