@@ -32,6 +32,7 @@ type QuestParam struct {
 	Question   string          `json:"question"`
 }
 
+//返回结果转question结构体
 func rspItem2Question(item *GetTableRspItem) (*Question, error) {
 	hash, err := strconv.ParseUint(item.Hash, 10, 64)
 	if err != nil {
@@ -54,25 +55,7 @@ func main() {
 	ctx, _ := context.WithCancel(context.Background())
 	api := eos.New("http://127.0.0.1:8888/")
 
-	acc := eos.AccountName("t1") //账号名
-
-	infoRsp, err := api.GetInfo(ctx)
-	if err != nil {
-		fmt.Println("GetInfo err:", err)
-		return
-	}
-	fmt.Println("infoRsp:", infoRsp)
-
-	accRsp, err := api.GetAccount(ctx, acc)
-	if err != nil {
-		fmt.Println("GetAccount err1:", err)
-		return
-	}
-	fmt.Println("accRsp:", accRsp)
-
-	pubkeys := accRsp.Permissions[0].RequiredAuth.Keys
-	fmt.Println("pubkeys:", pubkeys, "\n")
-
+	//签名器
 	api.SetSigner(eos.NewKeyBag())
 
 	//看表
@@ -123,21 +106,21 @@ func watchTable(ctx context.Context, api *eos.API) {
 //提问
 func ask(ctx context.Context, api *eos.API, privKey string) {
 	act := &eos.Action{
-		Account: eos.AccountName("t1"),
-		Name:    eos.ActionName("question"),
-		Authorization: []eos.PermissionLevel{
+		Account: eos.AccountName("t1"),      //调用账号名
+		Name:    eos.ActionName("question"), //调用函数名
+		Authorization: []eos.PermissionLevel{ //设置权限
 			{
-				Actor:      eos.AccountName("t1"),
-				Permission: eos.PermissionName("active"),
+				Actor:      eos.AccountName("t1"),        //t1
+				Permission: eos.PermissionName("active"), //active权限
 			},
 		},
-		ActionData: eos.NewActionData(QuestParam{
-			Questioner: eos.AccountName("t1"),
-			Question:   "QmaYQaCwxg8pK9Z5QQC8vrb1hdBC5nV8YFGwGNVNQ3fWka",
+		ActionData: eos.NewActionData(QuestParam{ //设置参数（顺序按照dapp的顺序）
+			Questioner: eos.AccountName("t1"),                            //参数1
+			Question:   "QmaYQaCwxg8pK9Z5QQC8vrb1hdBC5nV8YFGwGNVNQ3fWka", //参数2
 		}),
 	}
-	api.Signer.ImportPrivateKey(ctx, privKey)
-	_, err := api.SignPushActions(ctx, act)
+	api.Signer.ImportPrivateKey(ctx, privKey) //签名器导入私钥
+	_, err := api.SignPushActions(ctx, act)   //签名并推送action
 	if err != nil {
 		fmt.Println("ask err:", err)
 	}
